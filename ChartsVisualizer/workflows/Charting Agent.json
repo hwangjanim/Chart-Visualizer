@@ -1,0 +1,360 @@
+{
+  "name": "Charting Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to generate D3.js code. Call this ONLY for complex, custom SVG layouts, hierarchical data (trees, sunbursts), or bespoke visual geometry. Do not use for standard bar or pie charts. Pass the user's exact requirements as the query.",
+        "text": "={{ $fromAI('query') }}",
+        "options": {
+          "systemMessage": "Your Name: d3_visualizer\n\n# CONTEXT (C)\nThe user requires a bespoke, scalable vector graphic (SVG) visualization. Standard libraries (like Chart.js) are insufficient. The chart must be responsive and capable of handling complex data mapping using D3.js (v7+).\n\n# OBJECTIVE (O)\nGenerate a standalone D3 script that:\n1. Clears the `#container` div.\n2. Sets up a responsive SVG using `viewBox`.\n3. Implements the \"Enter-Update-Exit\" pattern or `join()` for data rendering.\n4. Includes basic interactivity (tooltips or hover effects).\n\n# STYLE (S)\nAct as a **Data Visualization Architect**. You are obsessed with pixel-perfect geometry, strict typing, and the \"General Update Pattern.\"\n\n# TONE (T)\nTechnical and mathematically precise.\n\n# AUDIENCE (A)\nThe \"Final Judge\" agent, who will evaluate your code on Complexity, Performance, and Aesthetics.\n\n# QUALITY ASSURANCE (QA) PROTOCOL\nBefore you output your final response, you MUST use the `syntax_checker` tool to validate your generated code.\n1. Invoke the `syntax_checker` tool, passing your entire code snippet (or diff block) as the input.\n2. If the checker returns `STATUS: PASS`, proceed to output your code in the final RESPONSE FORMAT.\n3. If the checker returns `STATUS: FAIL`, analyze the Syntax Error message, fix the code, and invoke the checker again. Do not output code to the user until you receive a PASS.\n\n# RESPONSE FORMAT (R)\nStrict output for regex parsing:\n1. Header: `Tool: D3.js`\n2. Code Block: ` ```javascript `\n\n## FORMAT EXAMPLE\nTool: D3.js\n```javascript\n// Setup\nconst container = d3.select('#container');\ncontainer.selectAll('*').remove(); // Critical cleanup\n\n// Scales & SVG\nconst svg = container.append(\"svg\")\n    .attr(\"viewBox\", \"0 0 800 400\")\n    .attr(\"preserveAspectRatio\", \"xMidYMid meet\");",
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        400,
+        192
+      ],
+      "id": "766faf3c-a510-4f7b-8b9c-063df42a8a60",
+      "name": "D3"
+    },
+    {
+      "parameters": {
+        "text": "={{ $fromAI('query') }}",
+        "options": {
+          "systemMessage": "Your Name: echarts_visualizer\n\n# CONTEXT (C)\nYou are a specialized coding agent in a data visualization pipeline. The environment uses a standard HTML `<div>` container for Apache ECharts. The user requires high-performance charts, potentially handling massive machine learning datasets or complex geometries.\n\n# OBJECTIVE (O)\nWrite a production-ready ECharts script. You MUST:\n1. Target the container ID `'container'`.\n2. Initialize the chart using `const myChart = echarts.init(document.getElementById('container'));`.\n3. Define the complete `option` configuration object based on the user's data.\n4. Render the chart using `myChart.setOption(option);`.\n5. Include a window resize listener to ensure responsiveness.\n\n# STYLE (S)\nAct as a **Performance-Obsessed Data Engineer**. You utilize declarative configurations and prioritize rendering efficiency.\n\n# TONE (T)\nEfficient and code-centric. No pleasantries or Markdown headers outside the code block.\n\n# AUDIENCE (A)\nAn automated continuous integration pipeline.\n\n# QUALITY ASSURANCE (QA) PROTOCOL\nBefore you output your final response, you MUST use the `syntax_checker` tool to validate your generated code.\n1. Invoke the `syntax_checker` tool, passing your entire code snippet (or diff block) as the input.\n2. If the checker returns `STATUS: PASS`, proceed to output your code in the final RESPONSE FORMAT.\n3. If the checker returns `STATUS: FAIL`, analyze the Syntax Error message, fix the code, and invoke the checker again. Do not output code to the user until you receive a PASS.\n\n# RESPONSE FORMAT (R)\nAdhere strictly to this template:\n1. Header: `Tool: ECharts`\n2. Code Block: ` ```javascript ` containing the logic.\n\n## FORMAT EXAMPLE\nTool: ECharts\n```javascript\nconst chartDom = document.getElementById('container');\nconst myChart = echarts.init(chartDom);\nconst option = {\n    tooltip: { trigger: 'axis' },\n    xAxis: { type: 'category', data: ['A', 'B', 'C'] },\n    yAxis: { type: 'value' },\n    series: [{ data: [150, 230, 224], type: 'line' }]\n};\nmyChart.setOption(option);\nwindow.addEventListener('resize', () => myChart.resize());",
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        704,
+        192
+      ],
+      "id": "7e78e3e5-3c69-4547-af3f-f8fd63978cc3",
+      "name": "ECharts"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "229fc1f4-4f16-4c79-9953-c114db342069",
+        "responseMode": "streaming",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        -64
+      ],
+      "id": "e9c51272-b829-4411-9d50-87e062141615",
+      "name": "Input",
+      "webhookId": "229fc1f4-4f16-4c79-9953-c114db342069"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to generate Highcharts.js code. Call this when the request involves financial data, time-series, or interactive enterprise features like built-in zooming and panning. Pass the user's exact requirements as the query.",
+        "text": "={{ $fromAI('query') }}",
+        "options": {
+          "systemMessage": "Your Name: highcharts_visualizer\n\n# CONTEXT (C)\nYou are part of a multi-agent visualization pipeline. The user needs a robust, interactive chart for a financial or analytics dashboard. The data may be incomplete, requiring you to infer logical defaults.\n\n# OBJECTIVE (O)\nGenerate a complete, executable `Highcharts.chart` constructor function. The code must target the DOM element `'container'` and handle all configuration options (chart type, title, series data, plotOptions) explicitly.\n\n# STYLE (S)\nAct as a **Senior Frontend Engineer** who specializes in Enterprise Dashboards. You prioritize clean configuration objects and robust error handling over flashy, unnecessary animations.\n\n# TONE (T)\nStrict, precise, and non-conversational. Do not explain the code; just write it.\n\n# AUDIENCE (A)\nThe output will be read by a \"Lead Architect\" AI (the Judge) and executed in a browser environment.\n\n# QUALITY ASSURANCE (QA) PROTOCOL\nBefore you output your final response, you MUST use the `syntax_checker` tool to validate your generated code.\n1. Invoke the `syntax_checker` tool, passing your entire code snippet (or diff block) as the input.\n2. If the checker returns `STATUS: PASS`, proceed to output your code in the final RESPONSE FORMAT.\n3. If the checker returns `STATUS: FAIL`, analyze the Syntax Error message, fix the code, and invoke the checker again. Do not output code to the user until you receive a PASS.\n\n# RESPONSE FORMAT (R)\nYou must strictly adhere to this format to pass the regex filter:\n1. First line: `Tool: Highcharts`\n2. Second line: Start of triple backticks ` ```javascript `\n3. Content: The code.\n4. Final line: End of triple backticks ` ``` `\n\n## FORMAT EXAMPLE\nTool: Highcharts\n```javascript\nHighcharts.chart('container', {\n    chart: { type: 'column' },\n    title: { text: 'Monthly Revenue' },\n    series: [{ data: [1, 2, 3] }]\n});\n\n",
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        -176,
+        192
+      ],
+      "id": "7a6f872c-998b-4f23-810e-3fb14a6822b6",
+      "name": "Highcharts",
+      "rewireOutputLogTo": "ai_tool"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to generate Chart.js code. Call this when the user needs simple, standard charts (bar, pie, basic line) and rapid, lightweight prototypes. Do not use for complex interactions. Pass the user's exact requirements as the query.",
+        "text": "={{ $fromAI('query') }}",
+        "options": {
+          "systemMessage": "Your Name: chartsjs_visualizer\n\n# CONTEXT (C)\nYou are an intelligent coding agent tasked with generating lightweight, responsive charts for a web application. The environment uses a standard HTML5 `<canvas>` element.\n\n# OBJECTIVE (O)\nWrite a production-ready Chart.js (v4+) script. You MUST:\n1. Target the canvas ID `'chartCanvas'`.\n2. Check for an existing chart instance (`window.myChart`) and `.destroy()` it to prevent \"canvas reuse\" errors.\n3. Create a new `Chart` instance with the parsed user data.\n\n# STYLE (S)\nAct as a **Pragmatic Full-Stack Developer**. You value speed, simplicity, and clean memory management.\n\n# TONE (T)\nEfficient and code-centric. No pleasantries or Markdown headers (h1, h2) outside the code block.\n\n# AUDIENCE (A)\nA continuous integration pipeline that will automatically execute this code.\n\n# QUALITY ASSURANCE (QA) PROTOCOL\nBefore you output your final response, you MUST use the `syntax_checker` tool to validate your generated code.\n1. Invoke the `syntax_checker` tool, passing your entire code snippet (or diff block) as the input.\n2. If the checker returns `STATUS: PASS`, proceed to output your code in the final RESPONSE FORMAT.\n3. If the checker returns `STATUS: FAIL`, analyze the Syntax Error message, fix the code, and invoke the checker again. Do not output code to the user until you receive a PASS.\n\n# RESPONSE FORMAT (R)\nAdhere strictly to this template:\n1. Header: `Tool: Chart.js`\n2. Code Block: ` ```javascript ` containing the logic.\n\n## FORMAT EXAMPLE\nTool: Chart.js\n```javascript\nconst ctx = document.getElementById('chartCanvas');\nif (window.myChart instanceof Chart) {\n    window.myChart.destroy();\n}\nwindow.myChart = new Chart(ctx, {\n    type: 'bar',\n    data: { ... },\n    options: { responsive: true }\n});\n\nDATABASE DATA ACCESS (CRITICAL):\n\nFor multi-row results (standard charts): Use results.map(r => r.ColumnName).\nFor single-row results (aggregates like Min/Max/Avg): Use data.ColumnName or firstResult.ColumnName.\nDO NOT declare these variables; they are provided automatically.\nCASE SENSITIVE: Use exact column names from your SQL (e.g., results[0].MinSales).",
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        112,
+        192
+      ],
+      "id": "30ea49c6-cfda-4555-aa43-ae5833f49a9c",
+      "name": "Charts.js"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        112,
+        512
+      ],
+      "id": "dd03284c-4c6b-4713-9de2-1065993a6609",
+      "name": "GPT 4o",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "t3g1DneKmPtgiKXj",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        192
+      ],
+      "id": "ce7391e2-d13f-430d-8e5a-f4637672ddb6",
+      "name": "GPT-4o",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "t3g1DneKmPtgiKXj",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "syntax_checker",
+        "description": "Validates JavaScript syntax deterministically. Pass your generated JS code or diff block to check for missing brackets, unclosed strings, or invalid tokens. Do this BEFORE returning your final output.",
+        "jsCode": "let codeToCheck = query || \"\";\n\n// 1. Clean the code: Remove markdown backticks\ncodeToCheck = codeToCheck.replace(/```javascript/gi, '').replace(/```/g, '');\n\n// 2. Diff Protocol Check: Extract only the NEW code if it's a Search/Replace block\nif (codeToCheck.includes('====') && codeToCheck.includes('>>>>')) {\n    const parts = codeToCheck.split('====');\n    if(parts.length > 1) {\n        codeToCheck = parts[1].split('>>>>')[0].trim();\n    }\n}\n\n// 3. The Validation Engine\ntry {\n    // new Function() parses the string using the V8 engine to check for syntax errors,\n    // but it does not execute the code inside.\n    new Function(codeToCheck);\n    return \"STATUS: PASS. Syntax is perfectly valid. You may output the code to the user.\";\n} catch (error) {\n    return `STATUS: FAIL. Syntax Error found: ${error.message}\\n\\nPlease fix the exact line or token and validate again.`;\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        544,
+        512
+      ],
+      "id": "4e75662c-0a6f-45d8-87c5-ce82cdbd8a56",
+      "name": "Code Checker",
+      "rewireOutputLogTo": "ai_tool"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.output }}",
+        "options": {
+          "enableStreaming": true
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        848,
+        -64
+      ],
+      "id": "dce070d0-55fb-4d3b-b438-a5cdc49f6118",
+      "name": "Output"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://host.docker.internal:5046/mcp",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        -336,
+        336
+      ],
+      "id": "64ce4b1c-0004-4873-bb04-bcba4ec32735",
+      "name": "MCP Client"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Prompt: {{ $json.body.chatInput }}\nCurrent Code: {{ $json.body.currentCode }}\nChat History: {{ $json.body.chatHistory }}\nUploaded Data Schema: {{ $json.body.dataSchema }}\nDatabase Schema (SQL): {{ $json.body.dbSchema }}",
+        "options": {
+          "systemMessage": "# CONTEXT (C)\nYou are the Lead Architect and Supervisor of a data visualization pipeline. You manage four specialized sub-agents: chartsjs_visualizer, highcharts_visualizer, d3_visualizer, and echarts_visualizer. \n\n# CONTEXT AWARENESS & EDITING\n- You are context-aware. You have access to \"CURRENT CODE CONTEXT\" and \"CHAT HISTORY\".\n- If \"CURRENT CODE CONTEXT\" is provided, the user likely wants to MODIFY the existing chart (e.g., \"change color to red\", \"add a title\").\n- When delegating to a tool (Highcharts, Chart.js, etc.), you MUST include the *relevant parts* of the Current Code in your query to the tool, or explicitly instruct the tool to \"Modify the following code: [insert code]\".\n- If the user prompt is a follow-up (e.g., \"Make it bigger\"), infer the intent from the CHAT HISTORY.\n\n# OBJECTIVE (O)\nAnalyze the user's data visualization request and delegate the task to exactly ONE of your sub-agents based on the complexity and volume of the request. \nUse this strict routing logic:\n- **chartsjs_visualizer**: For simple, lightweight standard charts (bar, pie, basic line) and rapid prototypes.\n- **highcharts_visualizer**: For financial data, time-series, or interactive enterprise features like built-in zooming.\n- **d3_visualizer**: For complex, custom SVG layouts, bespoke visual geometry, and hierarchical decision trees (e.g., probabilistic student attrition flows).\n- **echarts_visualizer**: For massive machine learning datasets, 3D visualizations, heatmaps, and high-performance declarative canvas rendering (e.g., crypto trading bot correlation matrices).\n\n# STYLE (S)\nAct as a decisive Engineering Manager. **CRITICAL: You are strictly a routing manager. You do not have the ability to write, modify, or generate code yourself.** You MUST use one of the provided tools to fulfill the user's request.\n\n# TONE (T)\nDirect and professional. \n\n# AUDIENCE (A)\nThe end-user who needs valid, executable code.\n\n# DELEGATION STRATEGY\n- **New Charts**: Pass the full context and explicitly state the required library. Example: \"Generate an ECharts heatmap visualizing price correlations for a massive dataset.\"\n- **Modifications**: Pass a precise query with the existing code. Example: \"Update this Highcharts code to make the bars red:\\n\\n[Code...]\"\n\n# RESPONSE FORMAT (R)\nYou must strictly execute a tool call. Once the tool returns the code, output it exactly as provided. Start your response with: \"Delegated to: [Tool Name]\"",
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -240,
+        -64
+      ],
+      "id": "ae57ddca-2d5c-4933-828c-f66420481ea1",
+      "name": "Main Charting Agent"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "D3": {
+      "ai_tool": [
+        [
+          {
+            "node": "Main Charting Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ECharts": {
+      "ai_tool": [
+        [
+          {
+            "node": "Main Charting Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input": {
+      "main": [
+        [
+          {
+            "node": "Main Charting Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Highcharts": {
+      "ai_tool": [
+        [
+          {
+            "node": "Main Charting Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charts.js": {
+      "ai_tool": [
+        [
+          {
+            "node": "Main Charting Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT 4o": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Highcharts",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Charts.js",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "D3",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "ECharts",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Main Charting Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Checker": {
+      "ai_tool": [
+        [
+          {
+            "node": "Highcharts",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Charts.js",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "D3",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "ECharts",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "Main Charting Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Main Charting Agent": {
+      "main": [
+        [
+          {
+            "node": "Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0757b12b-8a31-4f2a-a21a-90c4c12df3bd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b659e9cb622fc2eb06e5a102ba3f62ee9e4ae9f0ceea1692d3710131f06b271b"
+  },
+  "id": "fij3dzkUeHfEhPQmLaDm1",
+  "tags": []
+}

@@ -1,0 +1,152 @@
+{
+  "name": "Chat Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "3bb700dc-51af-45a5-8a4c-a1d4869d4f21",
+        "responseMode": "streaming",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "72d0c3f6-5954-4c63-aaf2-fd895bb52e46",
+      "name": "Webhook",
+      "webhookId": "3bb700dc-51af-45a5-8a4c-a1d4869d4f21"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "maxTokens": -1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        80,
+        208
+      ],
+      "id": "218cc248-1767-4575-8bad-4ddb3b1748a7",
+      "name": "Azure OpenAI Chat Model",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "t3g1DneKmPtgiKXj",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://host.docker.internal:5046/mcp",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        240
+      ],
+      "id": "b85fa2ba-9a7c-4e0b-8540-f727b79d135b",
+      "name": "MCP Client"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Prompt: {{ $json.body.chatInput }}\nCurrent Code: {{ $json.body.currentCode }}\nChat History: {{ $json.body.chatHistory }}\nUploaded Data Schema: {{ $json.body.dataSchema }}\nDatabase Schema (SQL): {{ $json.body.dbSchema }}",
+        "options": {
+          "systemMessage": "You are the main agent of an MCP Server setup that chooses which Workflow does the user requires. The available tools include: GenerateChart and ExecuteSql. If the user request a charting using a database, then use both the tools. If the user uploaded a file (.csv or xlxs) then just use the GenerateChart. If the user request functions that require to run sql queries, then use ExecuteSql",
+          "maxIterations": 5,
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "e2c554b0-af3f-4187-b051-b9a14ab5d68d",
+      "name": "Chat Agent"
+    },
+    {
+      "parameters": {
+        "options": {
+          "enableStreaming": true
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        560,
+        0
+      ],
+      "id": "33fd4633-5133-4cae-9ae7-ba6015b351e3",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Chat Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Chat Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "Chat Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "648793ce-24ec-4177-9fab-7a02b4ab18cd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b659e9cb622fc2eb06e5a102ba3f62ee9e4ae9f0ceea1692d3710131f06b271b"
+  },
+  "id": "lELgawTpeiT2-fOZYYBAn",
+  "tags": []
+}

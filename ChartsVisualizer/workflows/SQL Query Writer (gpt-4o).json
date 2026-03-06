@@ -1,0 +1,150 @@
+{
+  "name": "SQL Query Writer (gpt-4o)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "a1641031-e72b-45f6-bac2-0c84b4056ae5",
+        "responseMode": "streaming",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -256,
+        0
+      ],
+      "id": "6f805793-5ed1-46f7-9996-68f3a70e9efb",
+      "name": "Webhook",
+      "webhookId": "a1641031-e72b-45f6-bac2-0c84b4056ae5"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        240
+      ],
+      "id": "77223c94-4922-4733-a2cd-9732afbfee0b",
+      "name": "Azure OpenAI Chat Model",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "t3g1DneKmPtgiKXj",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "enableStreaming": true
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        304,
+        0
+      ],
+      "id": "abcfeace-4c71-48ad-9975-3ee2b81346d6",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://host.docker.internal:5046/mcp",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        144,
+        320
+      ],
+      "id": "0e7d8049-063a-402c-91d9-5a1da437d366",
+      "name": "MCP Client"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Prompt: {{ $json.body.chatInput }}\nChat History: {{ $json.body.chatHistory }}\nUploaded Data Schema: {{ $json.body.dataSchema }}\nDatabase Schema (SQL): {{ $json.body.dbSchema }}",
+        "options": {
+          "systemMessage": "# DELEGATION STRATEGY\n- **Private Data Mode**: Pass the SQL schema to the sub-agent and tell them: \"Generate code using the `results` variable. I have already generated the SQL query: [Your SQL here].\"\n# RESPONSE FORMAT (R)\nYou must strictly execute a tool call. Your final output to the user MUST contain both the SQL (if generated) and the JavaScript in markdown blocks:\nExample Output for Private Mode:\nDelegated to: Highcharts\n```sql\nSELECT Region, SUM(Amount) FROM Sales GROUP BY Region;\n\nDATABASE DATA ACCESS (CRITICAL):\n\nFor multi-row results (standard charts): Use results.map(r => r.ColumnName).\nFor single-row results (aggregates like Min/Max/Avg): Use data.ColumnName or firstResult.ColumnName.\nDO NOT declare these variables; they are provided automatically.\nCASE SENSITIVE: Use exact column names from your SQL (e.g., results[0].MinSales).",
+          "maxIterations": 10,
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "d42c2b4c-e7bd-424c-9f27-2453745af60c",
+      "name": "SQL Writer Agent"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "SQL Writer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "SQL Writer Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "SQL Writer Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL Writer Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f885de82-d624-4f21-9471-5725e8d84c8a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b659e9cb622fc2eb06e5a102ba3f62ee9e4ae9f0ceea1692d3710131f06b271b"
+  },
+  "id": "-HCbJKQvjWtPB-AimNfhQ",
+  "tags": []
+}

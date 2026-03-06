@@ -1,0 +1,535 @@
+﻿@page "/"
+@using ChartsVisualizer.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@inject IN8nService N8nService
+@inject DatabaseService DatabaseService
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Multi-Agent Visualizer</PageTitle>
+
+<style>
+    .chat-container {
+        height: 60vh;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        margin-bottom: 1rem;
+    }
+
+    .chat-bubble {
+        max-width: 80%;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        border-radius: 1rem;
+    }
+
+    .chat-bubble-user {
+        background-color: #007bff;
+        color: white;
+        margin-left: auto;
+        border-bottom-right-radius: 0.25rem;
+    }
+
+    .chat-bubble-assistant {
+        background-color: #e9ecef;
+        color: black;
+        margin-right: auto;
+        border-bottom-left-radius: 0.25rem;
+    }
+
+    .chart-container {
+        height: 400px;
+        width: 100%;
+    }
+</style>
+
+<div class="container-fluid mt-3">
+    <div class="row">
+        <!-- Left Column: Chat & Input -->
+        <div class="col-md-4 d-flex flex-column" style="height: 90vh;">
+            <h4>Chat</h4>
+            <div class="chat-container flex-grow-1" id="chatContainer">
+                @foreach (var msg in chatHistory)
+                {
+                    <div class="d-flex">
+                        <div class="chat-bubble @(msg.Role == "user" ? "chat-bubble-user" : "chat-bubble-assistant")">
+                            <strong>@(msg.Role == "user" ? "You" : "AI"):</strong>
+                            @if (!string.IsNullOrEmpty(msg.ThoughtProcess))
+                            {
+                                <details class="mb-2">
+                                    <summary class="text-muted" style="cursor: pointer; font-size: 0.9em;">Show Thought Process</summary>
+                                    <div class="p-2 mt-1 bg-light rounded text-dark" style="font-size: 0.85em; white-space: pre-wrap;">
+                                        @msg.ThoughtProcess
+                                    </div>
+                                </details>
+                            }
+                            <div style="white-space: pre-wrap;">@msg.Content</div>
+                        </div>
+                    </div>
+                }
+                @if (isLoading)
+                {
+                     <div class="d-flex">
+                        <div class="chat-bubble chat-bubble-assistant">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span> Thinking...</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="mb-2">
+                <label class="btn btn-outline-secondary btn-sm" style="cursor:pointer;">
+                    📎 Attach CSV / Excel
+                    <InputFile OnChange="OnFileSelected" accept=".csv,.xlsx,.xls" style="display:none;" disabled="@(isLoading || !string.IsNullOrEmpty(pendingCode))" />
+                </label>
+                @if (selectedFile != null)
+                {
+                    <span class="badge bg-info text-dark ms-2">
+                        @selectedFile.Name
+                        <button type="button" class="btn-close btn-close-sm ms-1" style="font-size:0.6rem;" @onclick="RemoveFile" aria-label="Remove"></button>
+                    </span>
+                }
+            </div>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="Describe your chart..." @bind="userPrompt" @onkeyup="@EnterKey" disabled="@(isLoading || !string.IsNullOrEmpty(pendingCode))" />
+                <button class="btn btn-primary" type="button" @onclick="SendRequest" disabled="@(isLoading || !string.IsNullOrEmpty(pendingCode))">Send</button>
+            </div>
+            
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger mt-2">
+                    @errorMessage
+                </div>
+            }
+
+            <div class="mb-2 d-flex align-items-center gap-2">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="dbModeSwitch" @bind="isDatabaseMode" disabled="@(isLoading || !string.IsNullOrEmpty(pendingCode))">
+                    <label class="form-check-label" for="dbModeSwitch">Database Mode (Private)</label>
+                </div>
+            </div>
+
+            <div class="mt-2 text-center">
+                 <button class="btn btn-outline-danger btn-sm" @onclick="ClearHistory" disabled="@isLoading">Clear History</button>
+            </div>
+        </div>
+
+        <!-- Right Column: Visualization & Diff -->
+        <div class="col-md-8">
+            <h4>Visualization</h4>
+            
+            @if (!string.IsNullOrEmpty(pendingCode))
+            {
+                <div class="alert alert-warning">
+                    <strong>Review Changes:</strong> The AI has suggested code changes. Please review the diff below.
+                </div>
+                <!-- Diff Editor Container -->
+                <div id="diffEditorContainer" style="width:100%; height:400px; border:1px solid #ccc;"></div>
+                
+                <div class="mt-2 d-flex gap-2">
+                    <button class="btn btn-success" @onclick="AcceptChanges">Accept Changes</button>
+                    <button class="btn btn-danger" @onclick="RejectChanges">Reject</button>
+                </div>
+            }
+            else
+            {
+                <!-- Active Chart Display -->
+                <div class="card">
+                     <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Chart</span>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="ExportHtml" disabled="@string.IsNullOrEmpty(currentCode)">Export HTML</button>
+                    </div>
+                    <div class="card-body">
+                         <div id="container" class="chart-container"></div>
+                         <div id="chartCanvasContainer" class="chart-container" style="position: relative; display:none;">
+                            <canvas id="chartCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                     <details>
+                        <summary>Current Code</summary>
+                        <pre class="bg-light p-3 border" style="max-height: 200px; overflow: auto;">@currentCode</pre>
+                    </details>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string userPrompt = "";
+    private string currentCode = "";
+    private string pendingCode = "";
+    private string pendingSql = "";
+    private string errorMessage = "";
+    private bool isLoading = false;
+    private bool isDatabaseMode = false;
+    private List<ChatMessage> chatHistory = new List<ChatMessage>();
+    private IBrowserFile? selectedFile;
+    private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
+
+    private void ClearHistory()
+    {
+        chatHistory.Clear();
+        currentCode = "";
+        pendingCode = "";
+        errorMessage = "";
+        selectedFile = null;
+        StateHasChanged();
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private void RemoveFile()
+    {
+        selectedFile = null;
+    }
+
+    private async Task ExportHtml()
+    {
+        if (string.IsNullOrEmpty(currentCode)) return;
+
+        // Serialize code to a safe JS string literal (handles newlines, quotes, etc.)
+        var jsonCode = System.Text.Json.JsonSerializer.Serialize(currentCode);
+
+        // Build HTML content
+        var htmlContent = $@"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Chart Export</title>
+    <script src='https://code.highcharts.com/highcharts.js'></script>
+    <script src='https://code.highcharts.com/highcharts-more.js'></script>
+    <script src='https://code.highcharts.com/modules/stock.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+    <script src='https://d3js.org/d3.v7.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js'></script>
+    <style>
+        body {{ font-family: sans-serif; padding: 20px; }}
+        #container, #chartCanvasContainer {{ width: 100%; height: 600px; margin-bottom: 20px; }}
+    </style>
+</head>
+<body>
+    <h1>Exported Chart</h1>
+    <div id='container'></div>
+    <div id='chartCanvasContainer' style='position: relative;'>
+        <canvas id='chartCanvas'></canvas>
+    </div>
+
+    <script>
+        // Visualizer Helper
+        const container = document.getElementById('container');
+        const canvasContainer = document.getElementById('chartCanvasContainer');
+        const canvas = document.getElementById('chartCanvas');
+
+        // Code injected from server
+        const code = {jsonCode}; 
+
+        let toolType = 'container'; // Default to container (Highcharts, D3, ECharts)
+
+        // Heuristic detection
+        if (code.match(/Tool:\s*Chart\.js/i) || code.includes('new Chart') || code.includes('getContext')) {{
+            toolType = 'canvas';
+        }}
+
+        // Manage Visibility
+        if (toolType === 'container') {{
+            if (canvasContainer) canvasContainer.style.display = 'none';
+            if (container) {{
+                container.style.display = 'block';
+                // D3 cleanup
+                container.innerHTML = ''; 
+            }}
+        }} else if (toolType === 'canvas') {{
+            if (container) container.style.display = 'none';
+            if (canvasContainer) canvasContainer.style.display = 'block';
+        }}
+
+        function extractCode(raw) {{
+            // 1. Try Regex
+            const regex = /```(?:javascript|js)?\s*([\s\S]*?)\s*```/i;
+            const match = raw.match(regex);
+            if (match && match[1]) return match[1];
+            
+            // 2. Fallback: Line-by-line cleanup
+            const lines = raw.split('\n');
+            const cleanLines = [];
+            let insideBlock = false;
+            
+            for (let i = 0; i < lines.length; i++) {{
+                const line = lines[i];
+                const trimmed = line.trim();
+                
+                if (trimmed.startsWith('```')) {{
+                    insideBlock = !insideBlock;
+                    continue; 
+                }}
+                
+                if (insideBlock) {{
+                    cleanLines.push(line);
+                    continue;
+                }}
+                
+                if (!trimmed || trimmed.startsWith('Tool:') || trimmed.startsWith('Delegated to:')) {{
+                    continue;
+                }}
+                
+                cleanLines.push(line);
+            }}
+            return cleanLines.join('\n');
+        }}
+
+        // Execute Code
+        try {{
+             const cleanCode = extractCode(code);
+             if (!cleanCode.trim()) throw new Error(""No executable code found."");
+             
+             console.log(""Executing:"", cleanCode);
+             eval(cleanCode);
+             
+             // Post-Eval Fixes (D3 Scaling)
+             if (toolType === 'container') {{
+                 const svg = container.querySelector('svg');
+                 if (svg && !svg.hasAttribute('viewBox')) {{
+                     const w = parseFloat(svg.getAttribute('width')) || container.clientWidth;
+                     const h = parseFloat(svg.getAttribute('height')) || container.clientHeight;
+                     if (w && h) svg.setAttribute('viewBox', `0 0 ${{w}} ${{h}}`); // Escape interpolation
+                     svg.style.width = '100%';
+                     svg.style.height = '100%';
+                 }}
+             }}
+        }} catch(e) {{
+            const err = document.createElement('div');
+            err.style.color = 'red';
+            err.style.padding = '10px';
+            err.style.border = '1px solid red';
+            err.innerText = 'Error executing code: ' + e.message;
+            document.body.appendChild(err);
+            console.error(e);
+        }}
+    </script>
+</body>
+</html>";
+
+        await JSRuntime.InvokeVoidAsync("visualizer.downloadFile", "chart-export.html", htmlContent);
+    }
+
+
+    private async Task EnterKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isLoading && !string.IsNullOrWhiteSpace(userPrompt) && string.IsNullOrEmpty(pendingCode))
+        {
+            await SendRequest();
+        }
+    }
+
+    private async Task SendRequest()
+    {
+        if (string.IsNullOrWhiteSpace(userPrompt)) return;
+
+        chatHistory.Add(new ChatMessage { Role = "user", Content = userPrompt });
+        
+        isLoading = true;
+        errorMessage = "";
+        var promptToSend = userPrompt;
+        userPrompt = "";
+
+        try
+        {
+            string? dataSchema = null;
+            if (selectedFile != null)
+            {
+                using var stream = selectedFile.OpenReadStream(MaxFileSize);
+                dataSchema = await FileParserService.ParseFileAsync(stream, selectedFile.Name);
+                selectedFile = null;
+            }
+
+            var historyToSend = chatHistory.ToList();
+            var assistantMessage = new ChatMessage { Role = "assistant", Content = "", ThoughtProcess = "" };
+            chatHistory.Add(assistantMessage);
+
+            string? dbSchema = null;
+            if (isDatabaseMode)
+            {
+                dbSchema = await DatabaseService.GetSchemaAsync();
+            }
+
+            await foreach (var chunk in N8nService.ProcessRequestStreamAsync(promptToSend, currentCode, historyToSend, dataSchema, dbSchema))
+            {
+                assistantMessage.ThoughtProcess += chunk;
+                StateHasChanged(); 
+            }
+
+            // Once the stream completes, parse the full Thought string and gracefully split it!
+            var fullOutput = assistantMessage.ThoughtProcess;
+            
+            // 1. Try to find SQL if in DB mode
+            if (isDatabaseMode)
+            {
+                int sqlStartIndex = fullOutput.IndexOf("```sql");
+                if (sqlStartIndex != -1)
+                {
+                    int startOfActualSql = fullOutput.IndexOf('\n', sqlStartIndex) + 1;
+                    int sqlEndIndex = fullOutput.IndexOf("```", startOfActualSql);
+                    if (sqlEndIndex != -1)
+                    {
+                        pendingSql = fullOutput.Substring(startOfActualSql, sqlEndIndex - startOfActualSql).Trim();
+                    }
+                }
+            }
+
+            // 2. Try to find the start of the code block. It might be ```javascript or just ```
+            int codeStartIndex = fullOutput.IndexOf("```javascript");
+            if (codeStartIndex == -1) codeStartIndex = fullOutput.IndexOf("```js");
+            if (codeStartIndex == -1) codeStartIndex = fullOutput.IndexOf("```");
+
+            if (codeStartIndex != -1)
+            {
+                // Find where the actual code starts (after the newline)
+                int startOfActualCode = fullOutput.IndexOf('\n', codeStartIndex);
+                if (startOfActualCode == -1) startOfActualCode = codeStartIndex + 3; // Fallback if no newline
+                else startOfActualCode += 1; // skip the newline itself
+
+                // Find the ending backticks
+                int codeEndIndex = fullOutput.IndexOf("```", startOfActualCode);
+                
+                if (codeEndIndex != -1)
+                {
+                    pendingCode = fullOutput.Substring(startOfActualCode, codeEndIndex - startOfActualCode).Trim();
+                }
+                else
+                {
+                    // If it never closed the backticks, just take everything to the end
+                    pendingCode = fullOutput.Substring(startOfActualCode).Trim();
+                    codeEndIndex = fullOutput.Length;
+                }
+                
+                // Clean the thought process so it doesn't show the javascript in the UI
+                // If we have SQL, we might want to clean that too!
+                string cleanedThought = fullOutput;
+                // Remove SQL block
+                int s1 = cleanedThought.IndexOf("```sql");
+                if (s1 != -1) {
+                    int s2 = cleanedThought.IndexOf("```", s1 + 6);
+                    if (s2 != -1) cleanedThought = cleanedThought.Remove(s1, (s2 + 3) - s1);
+                }
+                // Remove JS block
+                int j1 = cleanedThought.IndexOf("```javascript");
+                if (j1 == -1) j1 = cleanedThought.IndexOf("```js");
+                if (j1 == -1) j1 = cleanedThought.IndexOf("```");
+                if (j1 != -1) {
+                    int j2 = cleanedThought.IndexOf("```", j1 + 3);
+                    if (j2 != -1) cleanedThought = cleanedThought.Remove(j1, (j2 + 3) - j1);
+                    else cleanedThought = cleanedThought.Substring(0, j1);
+                }
+
+                assistantMessage.ThoughtProcess = cleanedThought.Trim();
+                
+                // If thought process is totally empty, hide it gracefully
+                if(string.IsNullOrWhiteSpace(assistantMessage.ThoughtProcess)) 
+                    assistantMessage.ThoughtProcess = "";
+                
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(50); // Wait for Blazor to flush the new Diff Editor DOM container to the screen before JS mounts Monaco
+                await JSRuntime.InvokeVoidAsync("visualizer.createDiffEditor", currentCode, pendingCode, "diffEditorContainer");
+            }
+            else
+            {
+                // It was purely a chat message, no chart code generated.
+                assistantMessage.Content = assistantMessage.ThoughtProcess;
+                assistantMessage.ThoughtProcess = ""; // Fallback standard message mapping
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool IsCodeResponse(string response)
+    {
+        return response.Contains("Tool:") || response.Contains("```");
+    }
+
+    private async Task AcceptChanges()
+    {
+        if (string.IsNullOrEmpty(pendingCode)) return;
+
+        try 
+        {
+            // 1. Get value from editor (in case user modified it further?) 
+            // For now, let's just use pendingCode, or if you want to support manual edits in diff view, 
+            // you'd need the getDiffEditorValue method.
+            // Let's assume the user just accepts the AI's suggestion for now.
+            
+            // 2. Render the new code
+            currentCode = pendingCode;
+            chatHistory.Add(new ChatMessage { Role = "assistant", Content = "Updated chart code." });
+            
+            // 3. Render
+            await JSRuntime.InvokeVoidAsync("visualizer.disposeDiffEditor");
+            
+            // Wait for UI to switch back to chart view
+            pendingCode = "";
+            await InvokeAsync(StateHasChanged);
+
+            string codeToRender = currentCode;
+
+            // If we have pending SQL, execute it and inject data!
+            if (isDatabaseMode && !string.IsNullOrEmpty(pendingSql))
+            {
+                try 
+                {
+                    var data = await DatabaseService.ExecuteQueryAsync(pendingSql);
+                    var jsonResults = JsonSerializer.Serialize(data);
+                    
+                    // Prepend the data to the code. We provide multiple aliases to make it AI-proof.
+                    codeToRender = $@"
+                        // DATABASE RESULTS (Local Only)
+                        const results = {jsonResults}; 
+                        const firstResult = results.length > 0 ? results[0] : {{}};
+                        const data = firstResult; // Alias for single-row results
+                    " + currentCode;
+                    pendingSql = ""; // Clear after use
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = $"Database error: {ex.Message}";
+                    return;
+                }
+            }
+
+            var result = await JSRuntime.InvokeAsync<string>("visualizer.renderChart", codeToRender);
+            if (result != "Success")
+            {
+                errorMessage = $"Chart rendering failed: {result}";
+            }
+        }
+        catch (Exception ex)
+        {
+             errorMessage = "Error applying changes: " + ex.Message;
+        }
+    }
+
+    private async Task RejectChanges()
+    {
+        await JSRuntime.InvokeVoidAsync("visualizer.disposeDiffEditor");
+        pendingCode = "";
+        chatHistory.Add(new ChatMessage { Role = "assistant", Content = "Changes rejected." });
+    }
+}
